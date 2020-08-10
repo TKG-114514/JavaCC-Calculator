@@ -1,0 +1,137 @@
+//javacc ファイル
+
+options
+{
+  static = false;
+}
+
+PARSER_BEGIN(Parser)
+import java.io.*;
+import java.awt.event.*;
+import java.math.BigDecimal;
+class Parser {
+	private ActionListener listener;
+	public void setActionListener(ActionListener a){
+		listener = a;
+	}
+	private void outputCalculate(Node n){
+	  if((n.calculate() - (int)n.calculate()) == 0) {
+			listener.actionPerformed(
+			new ActionEvent(this,
+					ActionEvent.ACTION_PERFORMED,
+					String.valueOf(n.Icalculate())));
+		}
+		else {
+			listener.actionPerformed(
+			new ActionEvent(this,
+					ActionEvent.ACTION_PERFORMED,
+					String.valueOf(n.calculate())));
+		}
+
+	}
+	private void outputNode(Node n){
+		listener.actionPerformed(
+		new ActionEvent(this,
+				ActionEvent.ACTION_PERFORMED,
+				n.displayValue()));
+	}
+}
+PARSER_END(Parser)
+
+TOKEN : {
+    <NUM : ("0"|["1"-"9"](["0"-"9"])*)(["0"-"9","."])? >
+ |  <PLUSOP : "+" >
+ |  <MINUSOP : "-" >
+ |  <MULOP : "*" >
+ |  <DIVOP : "/" >
+ |  <REMAINOP : "%" >
+ |  <OPEN : "(" >
+ |  <CLOSE : ")" >
+ |  <EQOP : "=" >
+}
+SKIP : {
+    " " | "\n" | "\r"
+}
+
+public Node start() :
+{
+	Node root;
+}
+{
+	root=first()
+	<EQOP> {outputCalculate(root); return root; }
+}
+
+public Node first() :
+{
+	Node root, node;
+}
+{
+	root=sum()
+	( <REMAINOP> node=prod() {
+		root = Op.connectToLeft(root);
+		root.setOp('%');
+		root.addRight(node);
+		outputNode(root);
+	  }
+	)* {return root; }
+}
+
+public Node sum() :
+{
+	Node root, node;
+}
+{
+	root=prod()
+	( <PLUSOP> node=prod() {
+		root = Op.connectToLeft(root);
+		root.setOp('+');
+		root.addRight(node);
+		outputNode(root);
+	  }
+	| <MINUSOP> node=prod() {
+                root = Op.connectToLeft(root);
+		root.setOp('-');
+		root.addRight(node);
+		outputNode(root);
+	  }
+	)* {return root; }
+}
+
+private Node prod() :
+{
+	Node node, root;
+}
+{
+	root=value()
+	( <MULOP> node=value() {
+		root = Op.connectToLeft(root);
+		root.setOp('*');
+		root.addRight(node);
+		outputNode(root);
+	  }
+	| <DIVOP> node=value() {
+		root = Op.connectToLeft(root);
+		root.setOp('/');
+		root.addRight(node);
+		outputNode(root);
+	  }
+	)* {return root; }
+}
+
+private Node value() :
+{
+	Node node;
+}
+{
+	node=num() {outputNode(node); return node; }
+	| <OPEN> node=sum() <CLOSE> {return node;}
+}
+
+private Node num() :
+{
+	Token token;
+}
+{
+	token=<NUM> { return new Num(Double.parseDouble(token.image));}
+}
